@@ -52,32 +52,56 @@ async function run() {
 
       res.status(201).send("User registered successfully!");
     });
-    app.get('/products',async(req,res)=>{
+    app.get("/products", async (req, res) => {
       const result = await products.find({}).toArray();
-      res.send(result)
-    })
-    app.post('/setcurrentuser',async(req,res)=>{
-      const {email,username,photoUrl} = req.body;
-      await  currentUser.insertOne({email,username,photoUrl})
-      res.status(201).send("User Login successfully!");
-    })
-    app.get('/setcurrentuser',async(req,res)=>{
-      const result = await currentUser.find({}).toArray();
-      res.send(result)
-    })
-    app.post('/addtocart',async(req,res)=>{
-      const cart = req.body;
-      console.log(cart); 
-      const result =  await productCart.insertOne(cart);
       res.send(result);
-    })
-    app.delete('/deletecurrentitem',async(req,res)=>{
+    });
+    app.post("/setcurrentuser", async (req, res) => {
+      const { email, username, photoUrl } = req.body;
+      await currentUser.insertOne({ email, username, photoUrl });
+      res.status(201).send("User Login successfully!");
+    });
+    app.get("/setcurrentuser", async (req, res) => {
+      const result = await currentUser.find({}).toArray();
+      res.send(result);
+    });
+    app.post("/addtocart", async (req, res) => {
+      const data = req.body;
+      console.log(data);
+      let { email, ...pro } = data;
+      const query = { email };
+      const existingData = await productCart.findOne(query);
+      if (!existingData) {
+        const result = await productCart.insertOne({
+          email: email,
+          products: [pro],
+        });
+        res.send(result);
+      }
+      if (existingData) {
+        const findP = existingData.products.find((p) => p.id === data.id);
+        if (findP) {
+          return res.send({ message: "Product already added to the cart" });
+        } else {
+          const result = await productCart.updateOne(
+            { email: data.email },
+            { $push: { products: { $each: [pro] } } }
+          );
+          return res.send({ message: "Product added to the cart", result });
+        }
+      }
+    });
+    app.get("/addtocart", async (req, res) => {
+      const result = await productCart.find({}).toArray();
+      res.send(result);
+    });
+    app.delete("/deletecurrentitem", async (req, res) => {
       const email = req.body;
       console.log(email);
-      const result = await currentUser.deleteOne({email:email?.email});
+      const result = await currentUser.deleteOne({ email: email?.email });
       console.log(result);
       res.send(result);
-    })
+    });
     // Login
     app.post("/login", async (req, res) => {
       const { email, password } = req.body;
