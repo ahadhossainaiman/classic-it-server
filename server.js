@@ -16,7 +16,7 @@ app.get("/", async (req, res) => {
 });
 
 const uri =
-  "mongodb+srv://ahad1:LtS5oWD9dFYOW5DA@cluster1.gvlvc6q.mongodb.net/?retryWrites=true&w=majority";
+  "mongodb+srv://ahad1:Ip8kMynIfMx6QgHC@cluster1.gvlvc6q.mongodb.net/?retryWrites=true&w=majority";
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -32,10 +32,13 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     const userCollection = client.db("classic-it").collection("users");
+    const currentUser = client.db("classic-it").collection("currentUser");
+    const products = client.db("classic-it").collection("products");
+    const productCart = client.db("classic-it").collection("productsCart");
 
     app.post("/register", async (req, res) => {
       const { email, password, username, photoUrl } = req.body;
-      const existingUser = await userCollection.findOne({ username });
+      const existingUser = await userCollection.findOne({ email });
       if (existingUser) {
         return res.status(400).send("Username already exists");
       }
@@ -49,7 +52,32 @@ async function run() {
 
       res.status(201).send("User registered successfully!");
     });
-
+    app.get('/products',async(req,res)=>{
+      const result = await products.find({}).toArray();
+      res.send(result)
+    })
+    app.post('/setcurrentuser',async(req,res)=>{
+      const {email,username,photoUrl} = req.body;
+      await  currentUser.insertOne({email,username,photoUrl})
+      res.status(201).send("User Login successfully!");
+    })
+    app.get('/setcurrentuser',async(req,res)=>{
+      const result = await currentUser.find({}).toArray();
+      res.send(result)
+    })
+    app.post('/addtocart',async(req,res)=>{
+      const cart = req.body;
+      console.log(cart); 
+      const result =  await productCart.insertOne(cart);
+      res.send(result);
+    })
+    app.delete('/deletecurrentitem',async(req,res)=>{
+      const email = req.body;
+      console.log(email);
+      const result = await currentUser.deleteOne({email:email?.email});
+      console.log(result);
+      res.send(result);
+    })
     // Login
     app.post("/login", async (req, res) => {
       const { email, password } = req.body;
